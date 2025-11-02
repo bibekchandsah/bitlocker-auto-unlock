@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    
+    <!-- Assembly Information -->
+    <AssemblyTitle>BitLocker Drive Manager</AssemblyTitle>
+    <AssemblyDescription>BitLocker Drive Manager - Secure drive encryption management tool</AssemblyDescription>
+    <AssemblyCompany>Bibek Chand Sah</AssemblyCompany>
+    <AssemblyProduct>BitLocker Drive Manager</AssemblyProduct>
+    <AssemblyCopyright>Copyright © 2025 Bibek Chand Sah</AssemblyCopyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="icon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.0" />
+  </ItemGroup>
+
+</Project>
