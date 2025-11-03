@@ -10,3 +10,11 @@ git push -u origin main
 git remote add origin https://github.com/bibekchandsah/bitlocker-auto-unlock.git
 git branch -M main
 git push -u origin main
+
+
+dotnet build   # build files in bin/debug folder
+dotnet run      # run the exe file in bin/debug folder
+
+dotnet build -c Release     # build files in bin/release folder
+dotnet run -c Release     # run the exe file in bin/release folder
+
