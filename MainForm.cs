@@ -282,12 +282,12 @@ namespace BitLockerManager
                 Font = new Font(this.Font.FontFamily, 8.5f, FontStyle.Italic)
             };
 
-            // Temporary debug button (remove after testing)
+            // Debug button (next to Manage Passwords)
             var debugButton = new Button
             {
                 Text = "Debug Registry",
-                Size = new Size(100, 25),
-                Location = new Point(410, 90)
+                Size = new Size(110, 30),
+                Location = new Point(395, 50)
             };
             debugButton.Click += (s, e) => {
                 var autoUnlockEnabled = GetAutoUnlockEnabled();
