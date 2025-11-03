@@ -20,6 +20,11 @@
     <AssemblyCopyright>Copyright © 2025 Bibek Chand Sah</AssemblyCopyright>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
+    
+    <!-- Additional properties to ensure company name is set -->
+    <Company>Bibek Chand Sah</Company>
+    <Product>BitLocker Drive Manager</Product>
+    <Authors>Bibek Chand Sah</Authors>
   </PropertyGroup>
 
   <ItemGroup>

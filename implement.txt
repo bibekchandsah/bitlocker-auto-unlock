@@ -18,3 +18,5 @@ dotnet run      # run the exe file in bin/debug folder
 dotnet build -c Release     # build files in bin/release folder
 dotnet run -c Release     # run the exe file in bin/release folder
 
+dotnet clean    # clean the bin folder
+dotnet build --configuration Release    #  build files in bin/release folder
