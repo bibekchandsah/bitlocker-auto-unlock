@@ -20,6 +20,7 @@ namespace BitLockerManager
         private Button checkProcessesButton = null!;
         private TextBox passwordTextBox = null!;
         private Label statusLabel = null!;
+        private LinkLabel developerLinkLabel = null!;
         private Button savePasswordButton = null!;
         private Button useSavedPasswordButton = null!;
         private Button managePasswordsButton = null!;
@@ -69,15 +70,43 @@ namespace BitLockerManager
             // Initialize system tray
             InitializeSystemTray();
 
-            // Status label
+            // Status bar panel
+            var statusPanel = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 25,
+                BackColor = SystemColors.Control
+            };
+
+            // Status label (left side)
             statusLabel = new Label
             {
                 Text = "Ready",
-                Dock = DockStyle.Bottom,
+                Dock = DockStyle.Fill,
                 Height = 25,
                 BackColor = SystemColors.Control,
-                Padding = new Padding(5)
+                Padding = new Padding(5),
+                TextAlign = ContentAlignment.MiddleLeft
             };
+
+            // Developer link label (right side)
+            developerLinkLabel = new LinkLabel
+            {
+                Text = "Developed by Bibek",
+                Dock = DockStyle.Right,
+                Width = 150,
+                Height = 25,
+                BackColor = SystemColors.Control,
+                Padding = new Padding(5),
+                TextAlign = ContentAlignment.MiddleRight,
+                LinkColor = Color.Blue,
+                VisitedLinkColor = Color.Purple,
+                ActiveLinkColor = Color.Red
+            };
+            developerLinkLabel.LinkClicked += DeveloperLinkLabel_LinkClicked;
+
+            statusPanel.Controls.Add(statusLabel);
+            statusPanel.Controls.Add(developerLinkLabel);
 
             // Main panel
             var mainPanel = new Panel
@@ -283,7 +312,7 @@ namespace BitLockerManager
             mainPanel.Controls.Add(controlPanel);
 
             this.Controls.Add(mainPanel);
-            this.Controls.Add(statusLabel);
+            this.Controls.Add(statusPanel);
 
             driveGrid.SelectionChanged += DriveGrid_SelectionChanged;
         }
@@ -1310,6 +1339,28 @@ namespace BitLockerManager
             else
             {
                 UpdateLastUnlockedDriveLabel();
+            }
+        }
+
+        #endregion
+
+        #region Developer Link
+
+        private void DeveloperLinkLabel_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e)
+        {
+            try
+            {
+                // Open the developer website
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "https://www.bibekchandsah.com.np/",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open website: {ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 

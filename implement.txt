@@ -20,3 +20,5 @@ dotnet run -c Release     # run the exe file in bin/release folder
 
 dotnet clean    # clean the bin folder
 dotnet build --configuration Release    #  build files in bin/release folder
+
+.\bin\Release\net8.0-windows10.0.17763.0\BitLockerManager.exe       # run the exe file in bin/release folder
