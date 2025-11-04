@@ -48,8 +48,8 @@ if %errorlevel% equ 0 (
     echo The BitLocker Auto Unlock task is NOT configured.
     echo.
     echo To fix this:
-    echo 1. Run create-task-admin.bat as Administrator
-    echo 2. Or use the "Create Startup Task" button in the app
+    echo 1. Use the "Setup Startup Task" button in the app
+    echo 2. Or run create-task-admin.bat as Administrator
     echo 3. Or create the task manually in Task Scheduler
     echo.
     echo ========================================

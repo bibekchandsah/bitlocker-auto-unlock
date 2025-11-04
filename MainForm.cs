@@ -314,7 +314,7 @@ namespace BitLockerManager
             // Create Task button (third row, next to checkbox)
             var createTaskButton = new Button
             {
-                Text = "📅 Create Startup Task",
+                Text = "📅 Setup Startup Task",
                 Size = new Size(150, 25),
                 Location = new Point(420, 90),
                 BackColor = Color.LightGreen
@@ -1403,8 +1403,9 @@ namespace BitLockerManager
                             return "❌ Task Status: NOT FOUND\n\n" +
                                    "The 'BitLocker Auto Unlock' task is not configured in Task Scheduler.\n\n" +
                                    "💡 To fix this:\n" +
-                                   "1. Reinstall the application to automatically create the task\n" +
-                                   "2. Or manually create the task using the provided XML file\n\n" +
+                                   "1. Click the '📅 Setup Startup Task' button below\n" +
+                                   "2. Click 'Yes' for batch file setup (recommended) or 'No' for manual guide\n" +
+                                   "3. Or manually create the task in Task Scheduler (taskschd.msc)\n\n" +
                                    "⚠️ Without this task, the application won't start automatically at logon.";
                         }
 
@@ -1501,143 +1502,217 @@ namespace BitLockerManager
             };
         }
 
-        private async void CreateTaskButton_Click(object? sender, EventArgs e)
+        private void CreateTaskButton_Click(object? sender, EventArgs e)
         {
             try
             {
-                statusLabel.Text = "Creating startup task...";
+                statusLabel.Text = "Choose task creation method...";
                 
                 var result = MessageBox.Show(
-                    "This will create a Windows Task Scheduler entry to automatically start BitLocker Manager when you log in.\n\n" +
+                    "Create a Windows Task Scheduler entry to automatically start BitLocker Manager when you log in.\n\n" +
                     "The task will:\n" +
                     "• Start 30 seconds after you log in to Windows\n" +
                     "• Run with elevated privileges\n" +
                     "• Help you unlock BitLocker drives automatically\n\n" +
-                    "Continue?",
-                    "Create Startup Task",
-                    MessageBoxButtons.YesNo,
+                    "Choose your preferred setup method:\n" +
+                    "• Click 'Yes' to run the batch file as Administrator (Recommended)\n" +
+                    "• Click 'No' to open the manual setup guide\n" +
+                    "• Click 'Cancel' to close this dialog",
+                    "Create Startup Task - Choose Method",
+                    MessageBoxButtons.YesNoCancel,
                     MessageBoxIcon.Question);
                 
-                if (result != DialogResult.Yes)
+                if (result == DialogResult.Yes)
+                {
+                    statusLabel.Text = "Running batch file as Administrator...";
+                    TryRunBatchFileAsAdmin();
+                }
+                else if (result == DialogResult.No)
+                {
+                    statusLabel.Text = "Opening manual setup guide...";
+                    OpenManualTaskGuide();
+                }
+                else
                 {
                     statusLabel.Text = "Task creation cancelled.";
-                    return;
                 }
+            }
+            catch (Exception ex)
+            {
+                statusLabel.Text = "Error in task creation process.";
+                MessageBox.Show($"Error in task creation process:\n{ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
 
-                var success = await CreateTaskSchedulerEntryAsync();
+
+
+        private void OpenManualTaskGuide()
+        {
+            try
+            {
+                // Get the application directory
+                var appDirectory = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                var guidePath = Path.Combine(appDirectory, "Manual-Task-Creation-Guide.txt");
                 
-                if (success)
+                if (File.Exists(guidePath))
                 {
-                    statusLabel.Text = "Startup task created successfully!";
+                    // Open the guide with the default text editor
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = guidePath,
+                        UseShellExecute = true
+                    });
+                    
+                    statusLabel.Text = "Manual task creation guide opened.";
+                    
                     MessageBox.Show(
-                        "✅ Startup task created successfully!\n\n" +
-                        "BitLocker Manager will now start automatically when you log in to Windows.\n\n" +
-                        "You can verify this by clicking the 'Task Status' button.",
-                        "Task Created",
+                        "📖 Manual Setup Guide Opened!\n\n" +
+                        "The step-by-step guide has been opened in your default text editor.\n\n" +
+                        "Follow the instructions to manually create the startup task in Windows Task Scheduler.\n\n" +
+                        "After completing the manual setup, you can use the 'Task Status' button to verify the task was created successfully.",
+                        "Manual Guide Opened",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
                 }
                 else
                 {
-                    statusLabel.Text = "Failed to create startup task.";
-                    MessageBox.Show(
-                        "❌ Failed to create startup task.\n\n" +
-                        "This might be due to:\n" +
-                        "• Insufficient permissions\n" +
-                        "• PowerShell execution policy restrictions\n" +
-                        "• Windows security settings\n\n" +
-                        "Try running the application as Administrator or check the Task Status for more details.",
-                        "Task Creation Failed",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
+                    // Fallback: show the guide content in a message box
+                    ShowManualGuideInDialog();
                 }
             }
             catch (Exception ex)
             {
-                statusLabel.Text = "Error creating startup task.";
-                MessageBox.Show($"Error creating startup task:\n{ex.Message}", 
-                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                statusLabel.Text = "Failed to open manual guide.";
+                MessageBox.Show($"Could not open the manual guide file:\n{ex.Message}\n\nTrying alternative method...", 
+                    "File Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                
+                // Fallback: show the guide content in a dialog
+                ShowManualGuideInDialog();
             }
         }
 
-        private async Task<bool> CreateTaskSchedulerEntryAsync()
+        private void ShowManualGuideInDialog()
         {
-            return await Task.Run(() =>
+            var guideContent = 
+                "MANUAL TASK CREATION GUIDE\n" +
+                "==========================\n\n" +
+                "1. OPEN TASK SCHEDULER\n" +
+                "   - Press Win + R, type: taskschd.msc, press Enter\n\n" +
+                "2. CREATE BASIC TASK\n" +
+                "   - Click 'Create Basic Task...'\n" +
+                "   - Name: BitLocker Auto Unlock\n" +
+                "   - Click 'Next'\n\n" +
+                "3. SET TRIGGER\n" +
+                "   - Select 'When I log on'\n" +
+                "   - Click 'Next'\n\n" +
+                "4. SET ACTION\n" +
+                "   - Select 'Start a program'\n" +
+                "   - Click 'Next'\n\n" +
+                "5. CONFIGURE PROGRAM\n" +
+                $"   - Program/script: {Application.ExecutablePath}\n" +
+                $"   - Start in: {Path.GetDirectoryName(Application.ExecutablePath)}\n" +
+                "   - Click 'Next'\n\n" +
+                "6. FINISH\n" +
+                "   - Check 'Open the Properties dialog...'\n" +
+                "   - Click 'Finish'\n\n" +
+                "7. ADVANCED SETTINGS\n" +
+                "   - General tab: Check 'Run with highest privileges'\n" +
+                "   - Triggers tab: Set 'Delay task for: 30 seconds'\n" +
+                "   - Click 'OK'\n\n" +
+                "After setup, use 'Task Status' button to verify!";
+            
+            var guideForm = new Form
             {
-                try
+                Text = "Manual Task Creation Guide",
+                Size = new Size(600, 500),
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+            
+            var textBox = new TextBox
+            {
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Vertical,
+                Dock = DockStyle.Fill,
+                Text = guideContent,
+                Font = new Font("Consolas", 9)
+            };
+            
+            var closeButton = new Button
+            {
+                Text = "Close",
+                Size = new Size(80, 30),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+                Location = new Point(500, 430)
+            };
+            closeButton.Click += (s, e) => guideForm.Close();
+            
+            guideForm.Controls.Add(textBox);
+            guideForm.Controls.Add(closeButton);
+            guideForm.ShowDialog();
+        }
+
+        private void TryRunBatchFileAsAdmin()
+        {
+            try
+            {
+                var appDirectory = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                var batchPath = Path.Combine(appDirectory, "create-task-admin.bat");
+                
+                if (File.Exists(batchPath))
                 {
-                    // Get the current application path
-                    var appPath = Application.ExecutablePath;
-                    var appDirectory = Path.GetDirectoryName(appPath) ?? "";
+                    var result = MessageBox.Show(
+                        "This will run the batch file as Administrator to create the startup task.\n\n" +
+                        "You will see a UAC prompt - click 'Yes' to continue.\n\n" +
+                        "Continue?",
+                        "Run Batch File as Administrator",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
                     
-                    using (var ps = PowerShell.Create())
+                    if (result == DialogResult.Yes)
                     {
-                        // Set execution policy for this session
-                        ps.AddScript("Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force");
-                        ps.Invoke();
-                        ps.Commands.Clear();
-
-                        // Check if task already exists and remove it
-                        ps.AddScript(@"
-                            $existingTask = Get-ScheduledTask -TaskName 'BitLocker Auto Unlock' -ErrorAction SilentlyContinue
-                            if ($existingTask) {
-                                Write-Host 'Removing existing task...'
-                                Unregister-ScheduledTask -TaskName 'BitLocker Auto Unlock' -Confirm:$false
-                            }
-                        ");
-                        ps.Invoke();
-                        ps.Commands.Clear();
-
-                        // Create the task using PowerShell cmdlets
-                        ps.AddScript($@"
-                            try {{
-                                # Create the task action
-                                $action = New-ScheduledTaskAction -Execute '{appPath}' -WorkingDirectory '{appDirectory}'
-
-                                # Create the task trigger (at logon with 30 second delay)
-                                $trigger = New-ScheduledTaskTrigger -AtLogOn
-                                $trigger.Delay = 'PT30S'
-
-                                # Create task settings
-                                $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 1)
-
-                                # Create the task principal (run with highest privileges for current user)
-                                $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
-
-                                # Register the task
-                                Register-ScheduledTask -TaskName 'BitLocker Auto Unlock' -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description 'Automatically starts BitLocker Manager at user logon to help unlock encrypted drives'
-
-                                Write-Host 'SUCCESS: Task created successfully'
-                            }}
-                            catch {{
-                                Write-Error ""FAILED: $($_.Exception.Message)""
-                                throw
-                            }}
-                        ");
-
-                        var results = ps.Invoke();
-                        
-                        if (ps.HadErrors)
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
-                            var errors = string.Join("; ", ps.Streams.Error.Select(e => e.ToString()));
-                            System.Diagnostics.Debug.WriteLine($"PowerShell errors: {errors}");
-                            return false;
-                        }
-
-                        // Check if the task was actually created
-                        ps.Commands.Clear();
-                        ps.AddScript("Get-ScheduledTask -TaskName 'BitLocker Auto Unlock' -ErrorAction SilentlyContinue");
-                        var verifyResults = ps.Invoke();
+                            FileName = batchPath,
+                            UseShellExecute = true,
+                            Verb = "runas" // This requests administrator privileges
+                        });
                         
-                        return verifyResults.Count > 0;
+                        statusLabel.Text = "Batch file launched as Administrator.";
+                        
+                        MessageBox.Show(
+                            "🔧 Batch File Launched!\n\n" +
+                            "The task creation batch file has been started with Administrator privileges.\n\n" +
+                            "Follow the prompts in the command window to create the startup task.\n\n" +
+                            "After completion, use the 'Task Status' button to verify the task was created.",
+                            "Batch File Started",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"CreateTaskSchedulerEntryAsync error: {ex.Message}");
-                    return false;
+                    MessageBox.Show(
+                        "The batch file 'create-task-admin.bat' was not found in the application directory.\n\n" +
+                        "Please use the manual guide to create the task.",
+                        "Batch File Not Found",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    
+                    OpenManualTaskGuide();
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                statusLabel.Text = "Failed to run batch file.";
+                MessageBox.Show($"Could not run the batch file as Administrator:\n{ex.Message}\n\nPlease use the manual guide instead.", 
+                    "Batch File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                OpenManualTaskGuide();
+            }
         }
 
         #endregion

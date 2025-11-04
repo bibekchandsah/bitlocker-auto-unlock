@@ -108,8 +108,13 @@ if %TASK_CREATE_ERROR% equ 0 (
     echo 3. Contact your system administrator if on a corporate network
     echo 4. Try running this batch file as Administrator
     echo.
+    echo Press any key to exit...
+    pause >nul
 )
 
 echo.
-echo Press any key to exit...
-pause >nul
+echo BitLocker Auto Unlock - Task Created successfully
+echo.
+echo Closing in 3 seconds...
+timeout /t 3 /nobreak >nul
+exit

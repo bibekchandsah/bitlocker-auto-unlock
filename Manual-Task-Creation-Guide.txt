@@ -28,8 +28,8 @@ STEP-BY-STEP INSTRUCTIONS:
 
 5. CONFIGURE PROGRAM
    - Program/script: Browse to your BitLockerManager.exe file
-   - Example path: D:\Programming\program exercise\c#\adv bit locker\bin\Release\net8.0-windows10.0.17763.0\BitLockerManager.exe
-   - Start in (optional): The folder containing BitLockerManager.exe
+   - Example path: C:\BCSApplications\Bitlocker auto unlock\BitLockerManager.exe
+   - Start in (optional): C:\BCSApplications\Bitlocker auto unlock
    - Click "Next"
 
 6. FINISH
@@ -46,6 +46,10 @@ STEP-BY-STEP INSTRUCTIONS:
      * Double-click the logon trigger
      * Check "Delay task for: 30 seconds"
      * Click "OK"
+   
+   - Go to "Conditions" tab:
+     * UnCheck "Start the task only if the computer is on AC power"
+     * UnCheck "Stop if the computer switches to battery power"
    
    - Go to "Settings" tab:
      * Uncheck "Stop the task if it runs longer than"

@@ -148,5 +148,3 @@ Filename: "{app}\create-task-admin.bat"; Parameters: """{app}"""; Flags: runhidd
 ; runascurrentuser = run as admin
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
-
-
