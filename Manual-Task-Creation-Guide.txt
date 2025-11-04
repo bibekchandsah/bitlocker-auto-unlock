@@ -1,0 +1,96 @@
+MANUAL TASK CREATION GUIDE
+==========================
+
+If the automated scripts don't work due to security restrictions, 
+you can create the task manually using Windows Task Scheduler GUI.
+
+STEP-BY-STEP INSTRUCTIONS:
+==========================
+
+1. OPEN TASK SCHEDULER
+   - Press Win + R
+   - Type: taskschd.msc
+   - Press Enter
+
+2. CREATE BASIC TASK
+   - In the right panel, click "Create Basic Task..."
+   - Name: BitLocker Auto Unlock
+   - Description: Automatically starts BitLocker Manager at user logon
+   - Click "Next"
+
+3. SET TRIGGER
+   - Select "When I log on"
+   - Click "Next"
+
+4. SET ACTION
+   - Select "Start a program"
+   - Click "Next"
+
+5. CONFIGURE PROGRAM
+   - Program/script: Browse to your BitLockerManager.exe file
+   - Example path: D:\Programming\program exercise\c#\adv bit locker\bin\Release\net8.0-windows10.0.17763.0\BitLockerManager.exe
+   - Start in (optional): The folder containing BitLockerManager.exe
+   - Click "Next"
+
+6. FINISH
+   - Review the settings
+   - Check "Open the Properties dialog for this task when I click Finish"
+   - Click "Finish"
+
+7. ADVANCED SETTINGS (Properties Dialog)
+   - Go to "General" tab:
+     * Check "Run with highest privileges"
+     * Select "Run whether user is logged on or not" (optional)
+   
+   - Go to "Triggers" tab:
+     * Double-click the logon trigger
+     * Check "Delay task for: 30 seconds"
+     * Click "OK"
+   
+   - Go to "Settings" tab:
+     * Uncheck "Stop the task if it runs longer than"
+     * Check "If the running task does not end when requested, force it to stop"
+     * Set "If the task is already running" to "Do not start a new instance"
+   
+   - Click "OK" to save
+
+8. TEST THE TASK
+   - Right-click on your new task
+   - Select "Run"
+   - BitLocker Manager should start
+
+TROUBLESHOOTING:
+===============
+
+If you get permission errors:
+- Make sure you're logged in as an Administrator
+- Try running Task Scheduler as Administrator (right-click taskschd.msc -> Run as administrator)
+
+If the task doesn't appear in the list:
+- Check the "Task Scheduler Library" folder
+- Look for any error messages in the Task Scheduler
+
+If the task runs but the program doesn't start:
+- Verify the path to BitLockerManager.exe is correct
+- Make sure the "Start in" directory is set correctly
+- Check Windows Event Viewer for error messages
+
+ALTERNATIVE STARTUP METHODS:
+===========================
+
+If Task Scheduler doesn't work, you can use these alternatives:
+
+1. STARTUP FOLDER
+   - Press Win + R, type: shell:startup
+   - Create a shortcut to BitLockerManager.exe in this folder
+
+2. REGISTRY RUN KEY
+   - Press Win + R, type: regedit
+   - Navigate to: HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+   - Create new String Value: "BitLockerAutoUnlock"
+   - Set value to full path of BitLockerManager.exe
+
+3. GROUP POLICY (if available)
+   - Press Win + R, type: gpedit.msc
+   - Navigate to: User Configuration > Windows Settings > Scripts (Logon/Logoff)
+   - Add BitLockerManager.exe to Logon scripts

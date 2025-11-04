@@ -302,10 +302,29 @@ namespace BitLockerManager
                     "Debug Info - Auto Unlock Settings");
             };
 
+            // Task Status button (next to Debug Registry)
+            var taskStatusButton = new Button
+            {
+                Text = "Task Status",
+                Size = new Size(100, 30),
+                Location = new Point(515, 50)
+            };
+            taskStatusButton.Click += TaskStatusButton_Click;
+
+            // Create Task button (third row, next to checkbox)
+            var createTaskButton = new Button
+            {
+                Text = "📅 Create Startup Task",
+                Size = new Size(150, 25),
+                Location = new Point(420, 90),
+                BackColor = Color.LightGreen
+            };
+            createTaskButton.Click += CreateTaskButton_Click;
+
             controlPanel.Controls.AddRange(new Control[] {
                 refreshButton, lockButton, unlockButton, checkProcessesButton, passwordLabel, passwordTextBox,
                 savePasswordButton, useSavedPasswordButton, managePasswordsButton, autoUnlockCheckBox, 
-                lastUnlockedDriveLabel, debugButton
+                lastUnlockedDriveLabel, debugButton, taskStatusButton, createTaskButton
             });
 
             mainPanel.Controls.Add(driveGrid);
@@ -1340,6 +1359,285 @@ namespace BitLockerManager
             {
                 UpdateLastUnlockedDriveLabel();
             }
+        }
+
+        #endregion
+
+        #region Task Status
+
+        private async void TaskStatusButton_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                statusLabel.Text = "Checking task scheduler status...";
+                
+                var taskInfo = await GetTaskSchedulerInfoAsync();
+                
+                MessageBox.Show(taskInfo, "Task Scheduler Status", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                statusLabel.Text = "Task status check completed.";
+            }
+            catch (Exception ex)
+            {
+                statusLabel.Text = "Failed to check task status.";
+                MessageBox.Show($"Error checking task status:\n{ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task<string> GetTaskSchedulerInfoAsync()
+        {
+            return await Task.Run(() =>
+            {
+                using (var ps = PowerShell.Create())
+                {
+                    try
+                    {
+                        // Check if the task exists
+                        ps.AddScript("Get-ScheduledTask -TaskName 'BitLocker Auto Unlock' -ErrorAction SilentlyContinue");
+                        var taskResults = ps.Invoke();
+                        
+                        if (ps.HadErrors || taskResults.Count == 0)
+                        {
+                            return "❌ Task Status: NOT FOUND\n\n" +
+                                   "The 'BitLocker Auto Unlock' task is not configured in Task Scheduler.\n\n" +
+                                   "💡 To fix this:\n" +
+                                   "1. Reinstall the application to automatically create the task\n" +
+                                   "2. Or manually create the task using the provided XML file\n\n" +
+                                   "⚠️ Without this task, the application won't start automatically at logon.";
+                        }
+
+                        var task = taskResults[0];
+                        var taskName = task.Properties["TaskName"]?.Value?.ToString() ?? "Unknown";
+                        var state = task.Properties["State"]?.Value?.ToString() ?? "Unknown";
+                        
+                        ps.Commands.Clear();
+                        ps.Streams.Error.Clear();
+
+                        // Get task info including next run time
+                        ps.AddScript("Get-ScheduledTaskInfo -TaskName 'BitLocker Auto Unlock' -ErrorAction SilentlyContinue");
+                        var infoResults = ps.Invoke();
+                        
+                        string nextRunTime = "Unknown";
+                        string lastRunTime = "Never";
+                        string lastResult = "Unknown";
+                        
+                        if (!ps.HadErrors && infoResults.Count > 0)
+                        {
+                            var taskInfo = infoResults[0];
+                            var nextRun = taskInfo.Properties["NextRunTime"]?.Value;
+                            var lastRun = taskInfo.Properties["LastRunTime"]?.Value;
+                            var result = taskInfo.Properties["LastTaskResult"]?.Value;
+                            
+                            nextRunTime = nextRun?.ToString() ?? "At next logon";
+                            lastRunTime = lastRun?.ToString() ?? "Never";
+                            lastResult = result?.ToString() ?? "Unknown";
+                        }
+
+                        ps.Commands.Clear();
+                        ps.Streams.Error.Clear();
+
+                        // Get trigger information
+                        ps.AddScript(@"
+                            $task = Get-ScheduledTask -TaskName 'BitLocker Auto Unlock'
+                            $triggers = $task.Triggers
+                            foreach ($trigger in $triggers) {
+                                if ($trigger.CimClass.CimClassName -eq 'MSFT_TaskLogonTrigger') {
+                                    Write-Output ""Trigger: At user logon""
+                                    if ($trigger.Delay) {
+                                        Write-Output ""Delay: $($trigger.Delay)""
+                                    }
+                                }
+                            }
+                        ");
+                        var triggerResults = ps.Invoke();
+                        
+                        string triggerInfo = "At user logon";
+                        if (triggerResults.Count > 0)
+                        {
+                            triggerInfo = string.Join("\n", triggerResults.Select(r => r.ToString()));
+                        }
+
+                        // Format the status message
+                        var statusIcon = state == "Ready" ? "✅" : "⚠️";
+                        var resultIcon = lastResult == "0" || lastResult == "Unknown" ? "✅" : "❌";
+                        
+                        return $"{statusIcon} Task Status: {state.ToUpper()}\n\n" +
+                               $"📋 Task Name: {taskName}\n" +
+                               $"🔄 {triggerInfo}\n" +
+                               $"⏰ Next Run: {nextRunTime}\n" +
+                               $"📅 Last Run: {lastRunTime}\n" +
+                               $"{resultIcon} Last Result: {GetTaskResultDescription(lastResult)}\n\n" +
+                               $"💡 This task automatically starts BitLocker Manager when you log in to Windows.\n" +
+                               $"The application will check for locked drives and help you unlock them.";
+                    }
+                    catch (Exception ex)
+                    {
+                        return $"❌ Error checking task status:\n\n{ex.Message}\n\n" +
+                               $"💡 Make sure you have permission to view scheduled tasks.";
+                    }
+                }
+            });
+        }
+
+        private string GetTaskResultDescription(string resultCode)
+        {
+            return resultCode switch
+            {
+                "0" => "Success (0x0)",
+                "1" => "Incorrect function (0x1)",
+                "2" => "File not found (0x2)",
+                "10" => "Environment incorrect (0xA)",
+                "267009" => "Task is currently running (0x41301)",
+                "267010" => "Task is ready to run (0x41302)",
+                "267011" => "Task is disabled (0x41303)",
+                "267012" => "Task has not yet run (0x41304)",
+                "267013" => "No more runs scheduled (0x41305)",
+                "267014" => "Properties not set (0x41306)",
+                "267015" => "Last run terminated by user (0x41307)",
+                "267016" => "No triggers/triggers disabled (0x41308)",
+                _ => $"Code: {resultCode}"
+            };
+        }
+
+        private async void CreateTaskButton_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                statusLabel.Text = "Creating startup task...";
+                
+                var result = MessageBox.Show(
+                    "This will create a Windows Task Scheduler entry to automatically start BitLocker Manager when you log in.\n\n" +
+                    "The task will:\n" +
+                    "• Start 30 seconds after you log in to Windows\n" +
+                    "• Run with elevated privileges\n" +
+                    "• Help you unlock BitLocker drives automatically\n\n" +
+                    "Continue?",
+                    "Create Startup Task",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                
+                if (result != DialogResult.Yes)
+                {
+                    statusLabel.Text = "Task creation cancelled.";
+                    return;
+                }
+
+                var success = await CreateTaskSchedulerEntryAsync();
+                
+                if (success)
+                {
+                    statusLabel.Text = "Startup task created successfully!";
+                    MessageBox.Show(
+                        "✅ Startup task created successfully!\n\n" +
+                        "BitLocker Manager will now start automatically when you log in to Windows.\n\n" +
+                        "You can verify this by clicking the 'Task Status' button.",
+                        "Task Created",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                else
+                {
+                    statusLabel.Text = "Failed to create startup task.";
+                    MessageBox.Show(
+                        "❌ Failed to create startup task.\n\n" +
+                        "This might be due to:\n" +
+                        "• Insufficient permissions\n" +
+                        "• PowerShell execution policy restrictions\n" +
+                        "• Windows security settings\n\n" +
+                        "Try running the application as Administrator or check the Task Status for more details.",
+                        "Task Creation Failed",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                statusLabel.Text = "Error creating startup task.";
+                MessageBox.Show($"Error creating startup task:\n{ex.Message}", 
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async Task<bool> CreateTaskSchedulerEntryAsync()
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Get the current application path
+                    var appPath = Application.ExecutablePath;
+                    var appDirectory = Path.GetDirectoryName(appPath) ?? "";
+                    
+                    using (var ps = PowerShell.Create())
+                    {
+                        // Set execution policy for this session
+                        ps.AddScript("Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force");
+                        ps.Invoke();
+                        ps.Commands.Clear();
+
+                        // Check if task already exists and remove it
+                        ps.AddScript(@"
+                            $existingTask = Get-ScheduledTask -TaskName 'BitLocker Auto Unlock' -ErrorAction SilentlyContinue
+                            if ($existingTask) {
+                                Write-Host 'Removing existing task...'
+                                Unregister-ScheduledTask -TaskName 'BitLocker Auto Unlock' -Confirm:$false
+                            }
+                        ");
+                        ps.Invoke();
+                        ps.Commands.Clear();
+
+                        // Create the task using PowerShell cmdlets
+                        ps.AddScript($@"
+                            try {{
+                                # Create the task action
+                                $action = New-ScheduledTaskAction -Execute '{appPath}' -WorkingDirectory '{appDirectory}'
+
+                                # Create the task trigger (at logon with 30 second delay)
+                                $trigger = New-ScheduledTaskTrigger -AtLogOn
+                                $trigger.Delay = 'PT30S'
+
+                                # Create task settings
+                                $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+
+                                # Create the task principal (run with highest privileges for current user)
+                                $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+
+                                # Register the task
+                                Register-ScheduledTask -TaskName 'BitLocker Auto Unlock' -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description 'Automatically starts BitLocker Manager at user logon to help unlock encrypted drives'
+
+                                Write-Host 'SUCCESS: Task created successfully'
+                            }}
+                            catch {{
+                                Write-Error ""FAILED: $($_.Exception.Message)""
+                                throw
+                            }}
+                        ");
+
+                        var results = ps.Invoke();
+                        
+                        if (ps.HadErrors)
+                        {
+                            var errors = string.Join("; ", ps.Streams.Error.Select(e => e.ToString()));
+                            System.Diagnostics.Debug.WriteLine($"PowerShell errors: {errors}");
+                            return false;
+                        }
+
+                        // Check if the task was actually created
+                        ps.Commands.Clear();
+                        ps.AddScript("Get-ScheduledTask -TaskName 'BitLocker Auto Unlock' -ErrorAction SilentlyContinue");
+                        var verifyResults = ps.Invoke();
+                        
+                        return verifyResults.Count > 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"CreateTaskSchedulerEntryAsync error: {ex.Message}");
+                    return false;
+                }
+            });
         }
 
         #endregion

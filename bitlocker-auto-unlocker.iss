@@ -108,6 +108,9 @@ Source: "D:\compile\bitlocker auto unlock\net8.0-windows10.0.17763.0\runtimes\*"
 Source: "D:\compile\bitlocker auto unlock\net8.0-windows10.0.17763.0\tr\*"; DestDir: "{app}/tr"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "D:\compile\bitlocker auto unlock\net8.0-windows10.0.17763.0\zh-Hans\*"; DestDir: "{app}/zh-Hans"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "D:\compile\bitlocker auto unlock\net8.0-windows10.0.17763.0\zh-Hant\*"; DestDir: "{app}/zh-Hant"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "D:\compile\bitlocker auto unlock\check-task-status.bat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\compile\bitlocker auto unlock\create-task-admin.bat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "D:\compile\bitlocker auto unlock\Manual-Task-Creation-Guide.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -130,11 +133,20 @@ Filename: "https://github.com/bibekchandsah/bitlocker-auto-unlock"; \
     Description: "See Source-code and give start after installation"; \
     Flags: shellexec postinstall skipifsilent 
 
- ; open feedback url after uninstall
+; Remove task scheduler entry
+[UninstallRun]
+Filename: "schtasks"; Parameters: "/delete /tn ""BitLocker Auto Unlock"" /f"; Flags: runhidden
+
+; open feedback url after uninstall
 [UninstallRun]
 Filename: "https://www.bibekchandsah.com.np/feedback.html"; Flags: runhidden shellexec
+
+; Fallback: Create task using batch file if PowerShell fails
+[Run]
+Filename: "{app}\create-task-admin.bat"; Parameters: """{app}"""; Flags: runhidden; Description: "Create startup task (Fallback)"; StatusMsg: "Creating startup task (fallback method)..."
 
 ; runascurrentuser = run as admin
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent runascurrentuser
+
 
